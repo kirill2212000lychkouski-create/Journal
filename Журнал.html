@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Журнал</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f6f7f9;--surf:#fff;--text:#1c1f26;--mute:#6b7280;--line:#e3e6eb;--acc:#2f5fd0;--accbg:#e8eefc;--abs:#fde7e7;--abst:#c62828;--today:#fff6d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#14161a;--surf:#1d2026;--text:#e8eaee;--mute:#9aa1ad;--line:#2d313a;--acc:#7da2ff;--accbg:#232d4a;--abs:#4a2323;--abst:#ff8a8a;--today:#3b3420}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#14161a;--surf:#1d2026;--text:#e8eaee;--mute:#9aa1ad;--line:#2d313a;--acc:#7da2ff;--accbg:#232d4a;--abs:#4a2323;--abst:#ff8a8a;--today:#3b3420}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:14px 12px 4px}
+h1{margin:0;font-size:20px}
+.sub{color:var(--mute);font-size:13px;margin-top:2px}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 12px}
+.tab{flex:none;border:1px solid var(--line);background:var(--surf);color:var(--text);padding:7px 12px;border-radius:999px;font-size:14px;cursor:pointer}
+.tab.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.wrap{overflow-x:auto;margin:0 8px 16px;border:1px solid var(--line);border-radius:10px;background:var(--surf);max-height:calc(100vh - 150px)}
+table{border-collapse:separate;border-spacing:0;font-size:14px}
+th,td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:center;padding:0}
+th{position:sticky;top:0;background:var(--surf);z-index:2;font-weight:500;padding:4px 0;font-size:12px;line-height:1.2}
+th small{display:block;color:var(--mute);font-size:10px}
+.nm{position:sticky;left:0;z-index:1;background:var(--surf);text-align:left;padding:0 8px;min-width:150px;max-width:150px;white-space:normal;font-size:12.5px;line-height:1.2}
+th.nm{z-index:3}
+.nm b{color:var(--mute);font-weight:400;margin-right:4px}
+td.c{width:34px;min-width:34px;height:38px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;font-weight:700}
+td.c.t{background:var(--today)}
+td.c.a{background:var(--abs);color:var(--abst)}
+th.t{background:var(--today)}
+td.n,th.n{min-width:40px;padding:0 6px;font-weight:600;color:var(--mute)}
+.foot{padding:0 12px 20px;color:var(--mute);font-size:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.foot button{border:1px solid var(--line);background:var(--surf);color:var(--text);padding:6px 10px;border-radius:8px;font-size:12px;cursor:pointer}
+</style>
+</head>
+<body>
+<header><h1>Школьный журнал</h1></header>
+<div class="tabs" id="tabs"></div>
+<div class="wrap"><table id="tbl"></table></div>
+<div class="foot"><span id="tot"></span><button id="rst">Очистить месяц</button></div>
+<script>
+var S=["Алешкевич Иван Алегсандрович","Боков Владислав Евгеньевич","Бокшук Артём Михайлович","Вашетьков Макар Александрович","Васьков Артём Игоревич","Врублевский Максим Андревнич","Горощеня Вадим Николаевич","Гирса Артур Сергеевич","Зенькович Павел Александрович","Ивановская Юлия Александровна","Кастелецкий Николай Дмитриевич","Конкин Ярослав Михайлович","Кутергина Ирина Владимировна","Лазовский Ярослав Александрович","Левшевич Егор Максимович","Лепетило Денис Андреевич","Литовченко Вадим Павлович","Лычковский Кирилл Денисович","Максименко Станислав Сергеевич","Мельникова Ксения Николаевна","Микулич Никита Валерьевич","Минкевич Артем Игоревич","Новиков Роман Александрович","Романовский Николай Алексеевич","Сачик Артем Рустанович","Свирид Тимофей Егорович","Севрук Иван Андреевич","Сергель Николай Николаевич","Синкевич Полина Андреевна","Теляк Артём Иванович"];
+var MN=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+var WD=["вс","пн","вт","ср","чт","пт","сб"];
+var M=[[2026,8],[2026,9],[2026,10],[2026,11],[2027,0],[2027,1],[2027,2],[2027,3],[2027,4]];
+var KEY="school-journal-v1",data={};
+try{data=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){data={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}}
+function p(n){return n<10?"0"+n:""+n}
+function ds(y,m,d){return y+"-"+p(m+1)+"-"+p(d)}
+var now,todayS,cur=0;
+function setNow(){now=new Date();todayS=ds(now.getFullYear(),now.getMonth(),now.getDate());cur=0;
+for(var i=0;i<M.length;i++){if(M[i][0]==now.getFullYear()&&M[i][1]==now.getMonth())cur=i}
+if(now>new Date(2027,4,31))cur=M.length-1}
+setNow();
+function days(i){var y=M[i][0],m=M[i][1],r=[],n=new Date(y,m+1,0).getDate();
+for(var d=1;d<=n;d++){var w=new Date(y,m,d).getDay();if(w>0&&w<6)r.push([d,w,ds(y,m,d)])}return r}
+function tabs(){var h="";M.forEach(function(m,i){h+='<button class="tab'+(i==cur?' on':'')+'" data-i="'+i+'">'+MN[m[1]]+'</button>'});
+var t=document.getElementById("tabs");t.innerHTML=h;var on=t.querySelector(".on");if(on)on.scrollIntoView({inline:"center",block:"nearest"})}
+function cnt(s,ds_){var c=0;ds_.forEach(function(d){if(data[d[2]+"|"+s])c++});return c}
+function render(){var D=days(cur),h="<thead><tr><th class='nm'>Ученик</th>";
+D.forEach(function(d){h+="<th class='"+(d[2]==todayS?"t":"")+"' style='min-width:34px'>"+d[0]+"<small>"+WD[d[1]]+"</small></th>"});
+h+="<th class='n'>Н</th></tr></thead><tbody>";
+S.forEach(function(n,s){h+="<tr><td class='nm'><b>"+(s+1)+".</b>"+n+"</td>";
+D.forEach(function(d){var a=data[d[2]+"|"+s];h+="<td class='c"+(a?" a":"")+(d[2]==todayS?" t":"")+"' data-k='"+d[2]+"|"+s+"' data-s='"+s+"'>"+(a?"н":"")+"</td>"});
+h+="<td class='n' id='n"+s+"'>"+(cnt(s,D)||"")+"</td></tr>"});
+document.getElementById("tbl").innerHTML=h+"</tbody>";tot()}
+function tot(){var D=days(cur),t=0;S.forEach(function(_,s){t+=cnt(s,D)});document.getElementById("tot").textContent="Всего пропусков за месяц: "+t}
+document.getElementById("tabs").onclick=function(e){var b=e.target.closest(".tab");if(!b)return;cur=+b.dataset.i;tabs();render()};
+document.getElementById("tbl").onclick=function(e){var c=e.target.closest("td.c");if(!c)return;var k=c.dataset.k;
+if(data[k]){delete data[k];c.classList.remove("a");c.textContent=""}else{data[k]=1;c.classList.add("a");c.textContent="н"}
+save();var s=c.dataset.s;document.getElementById("n"+s).textContent=cnt(s,days(cur))||"";tot()};
+document.getElementById("rst").onclick=function(){if(!confirm("Очистить все отметки за "+MN[M[cur][1]]+"?"))return;
+days(cur).forEach(function(d){S.forEach(function(_,s){delete data[d[2]+"|"+s]})});save();render()};
+function toToday(){var t=document.querySelector("th.t");if(t)t.scrollIntoView({inline:"center",block:"nearest"})}
+document.addEventListener("visibilitychange",function(){if(!document.hidden){var old=todayS;setNow();if(old!==todayS){tabs();render();toToday()}}});
+tabs();render();
+var td=document.querySelector("th.t");if(td)td.scrollIntoView({inline:"center",block:"nearest"});
+</script>
+</body>
+</html>
